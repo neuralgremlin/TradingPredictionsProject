@@ -1,0 +1,2 @@
+# TradingPredictionsProject
+Cloud Computing project
