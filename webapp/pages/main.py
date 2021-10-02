@@ -4,7 +4,9 @@ import yfinance as yf
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
+from plotly.subplots import make_subplots
 import pandas as pd
+import numpy as np
 
 def app():
 
@@ -28,7 +30,7 @@ def app():
     st.write("Mastercard Inc. - MA")
     st.write(" ")
 
-    stocks = ["AAPL", "AMZN", "NVIDIA", "CRM", "ORCL", "MSFT", "V", "BAC", "ADBE", "MA"]
+    stocks = ["AAPL", "AMZN", "NVDA", "CRM", "ORCL", "MSFT", "V", "BAC", "ADBE", "MA"]
 
     selected_stock = st.selectbox("Elige una acción para predecir su comportamiento futuro", stocks)
 
@@ -38,18 +40,30 @@ def app():
         data = yf.download(ticker, START, TODAY)
         data.reset_index(inplace=True)
         return data
-
-    data = load_data(selected_stock)
+        
+    data_load_state = st.text("Cargando data... ")
+    data1 = load_data(selected_stock)
+    value_list = [selected_stock]
+    sentimientos = pd.read_csv("sentimientos.csv")
+    boolean_series = sentimientos.Stock.isin(value_list)
+    sentimientos_filtrados = sentimientos[boolean_series]
+    sentimientos_filtrados['date'] = pd.to_datetime(sentimientos_filtrados['date'], format='%Y-%m-%d')
+    data= pd.merge(data1, sentimientos_filtrados, how= 'left', left_on="Date", right_on="date").fillna(0)
+    #data['compound'] = data['compound'].apply(lambda x:(x*20)+100)
     data_load_state = st.text("Cargando data... listo!")
 
     st.title("Información histórica de " + selected_stock)
     #st.write(data.tail())
 
     def plot_raw_data():
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name='stock_open'))
-        fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name='stock_close'))
-        fig.layout.update(title_text="Comportamiento de la acción. Desliza la barra de abajo para ver un periodo más corto.", xaxis_rangeslider_visible=True)
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name='stock_open'),secondary_y=False)
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name='stock_close'),secondary_y=False)
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['compound'], name='news_sentiment'),secondary_y=True)
+        fig.layout.update(title_text="Comportamiento de la acción. Desliza la barra de abajo para ver un periodo más corto.", 
+                           yaxis_title= "Stock Price",
+                           xaxis_rangeslider_visible=True)                           
+        fig.update_yaxes(title_text="-    News Sentiment    + ", secondary_y=True)
         st.plotly_chart(fig)
 
     plot_raw_data()
@@ -94,48 +108,22 @@ def app():
         st.write(noticias_filtradas)
 
         st.header("Si crees que la predicción debería ajustarse por las noticias más recientes, selecciona en qué sentido")
-        if st.checkbox('Para mal'):
+        impacto = st.slider("Impacto en precio futuro:", -50, 50, value=0)
+        if st.checkbox('Aplicar ajuste por impacto'):
+            
             df_train2 = data[['Date', 'Close']]
             df_train2 = df_train2.rename(columns={"Date": "ds", "Close": "y"})
-            df_train2['y'].iloc[-20] -= 10
-            df_train2['y'].iloc[-19] -= 14
-            df_train2['y'].iloc[-18] -= 16
-            df_train2['y'].iloc[-17] -= 18
-            df_train2['y'].iloc[-16] -= 20
-            df_train2['y'].iloc[-15] -= 22
-            df_train2['y'].iloc[-14] -= 24
-            df_train2['y'].iloc[-13] -= 26
-            df_train2['y'].iloc[-12] -= 28
-            df_train2['y'].iloc[-11] -= 30
-            df_train2['y'].iloc[-10] -= 32
-            df_train2['y'].iloc[-9] -= 32
-            df_train2['y'].iloc[-8] -= 34
-            df_train2['y'].iloc[-7] -= 36
-            df_train2['y'].iloc[-6] -= 38
-            df_train2['y'].iloc[-5] -= 40
-            df_train2['y'].iloc[-4] -= 42
-            df_train2['y'].iloc[-3] -= 44
-            df_train2['y'].iloc[-2] -= 46
-            df_train2['y'].iloc[-1] -= 50
-            #df_train2['y'].iloc[0] = df_train2['y'].iloc[-30:].apply(lambda x:x-22)
-            # df_train2['y'].iloc[-10] = df_train2['y'].iloc[-10].apply(lambda x:x-2)
-            # df_train2['y'].iloc[-9] = df_train2['y'].iloc[-9].apply(lambda x:x-4)
-            # df_train2['y'].iloc[-8] = df_train2['y'].iloc[-8].apply(lambda x:x-6)
-            # df_train2['y'].iloc[-7] = df_train2['y'].iloc[-7].apply(lambda x:x-8)
-            # df_train2['y'].iloc[-6] = df_train2['y'].iloc[-6].apply(lambda x:x-10)
-            # df_train2['y'].iloc[-5] = df_train2['y'].iloc[-5].apply(lambda x:x-12)
-            # df_train2['y'].iloc[-4] = df_train2['y'].iloc[-4].apply(lambda x:x-14)
-            # df_train2['y'].iloc[-3] = df_train2['y'].iloc[-3].apply(lambda x:x-16)
-            # df_train2['y'].iloc[-2] = df_train2['y'].iloc[-2].apply(lambda x:x-18)
-            # df_train2['y'].iloc[-1] = df_train2['y'].iloc[-1].apply(lambda x:x-20)
-            #df_train2['y'].iloc[0] = df_train2['y'].iloc[-30:].apply(lambda x:x-22)
+            
 
             m2 = Prophet()
             m2.fit(df_train2)
             future2 = m2.make_future_dataframe(periods=period)
             forecast2 = m2.predict(future2)
+            forecast2['yhat']=forecast2['yhat'].apply(lambda x:x+impacto)
+            forecast2['yhat_lower']=forecast2['yhat_lower'].apply(lambda x:x+impacto)
+            forecast2['yhat_upper']=forecast2['yhat_upper'].apply(lambda x:x+impacto)
 
-            st.subheader("Predicción de " + selected_stock + " en un plazo de " + str(n_semanas) + " semanas.")
+            st.subheader("Predicción de " + selected_stock + " en un plazo de " + str(n_semanas) + " semanas, con ajuste de "+ str(impacto) + " dolares.")
             fig2 = plot_plotly(m2, forecast2)
             st.plotly_chart(fig2)
 
