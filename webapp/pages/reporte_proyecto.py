@@ -7,11 +7,10 @@ def app():
     def st_display_pdf(pdf_file):
         with open(pdf_file,"rb") as f:
           base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-          pdf_display = F'<embed src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf">'
+          pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'        
         st.markdown(pdf_display, unsafe_allow_html=True)
 
     st.title("Reporte del proyecto")
-    st.image(Image.open('./pages/Images/IMG1_UP.png'))
     st.title("App Web para Monitoreo de Portafolio")
     st.write("Muñoz, Guillermo")
     st.write("Ortíz-Monasterio, Pedro")
