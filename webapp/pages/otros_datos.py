@@ -106,10 +106,10 @@ def app():
         data.reset_index(inplace=True)
         return data
 
-    data = load_data(selected_index)
+    data = load_data(selected_futures)
     data_load_state = st.text("Cargando data... listo!")
 
-    st.subheader("Información de " + selected_index)
+    st.subheader("Información de " + selected_futures)
     #st.write(data.tail())
 
     def plot_raw_data():
