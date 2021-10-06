@@ -14,7 +14,19 @@ def app():
     TODAY = date.today().strftime("%Y-%m-%d")
 
     df_stocks = pd.read_csv("stocks.csv")
-
+    
+    st.write("Apple Inc. - AAPL")
+    st.write("Amazon Inc. - AMZN")
+    st.write("NVIDIA Corp. - NVIDIA")
+    st.write("Salesforce Inc. - CRM")
+    st.write("Oracle Corp. - ORCL")
+    st.write("Microsoft Corp. - MSFT")
+    st.write("Visa Inc. - V")
+    st.write("Bank of America Corp. - BAC")
+    st.write("Adobe Inc. - ADBE")
+    st.write("Mastercard Inc. - MA")
+    st.write(" ")
+    
     stocks = df_stocks["Símbolo"]
     selected_stock = st.selectbox("Elige una acción para descargar su csv", stocks)
 
@@ -27,27 +39,14 @@ def app():
     data = load_data(selected_stock)
     data_load_state = st.text("Cargando data... listo!")
 
-    google_news = pd.read_csv("google_news.csv")
-    st.write(google_news)
-
-    if st.checkbox('Descargar data'):
+    if st.checkbox('Descargar data de la acción ' + selected_stock):
         data.to_csv(selected_stock+".csv")
         st.write(" ")
         st.write(" ")
         st.write(" ")
         st.write(" ")
         st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
         st.title("Data descargada!")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
         st.write(" ")
         st.write(" ")
         st.write(" ")
